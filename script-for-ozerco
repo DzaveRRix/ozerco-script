@@ -1,0 +1,184 @@
+-- Создаем новый ScreenGui
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer or Players.PlayerAdded:Wait() -- Ждем, пока игрок не будет добавлен
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel") -- Создаем метку для названия
+local TeleportButton = Instance.new("TextButton")
+local FlyButton = Instance.new("TextButton")
+local UICornerFrame = Instance.new("UICorner")
+local UICornerTeleportButton = Instance.new("UICorner")
+local UICornerFlyButton = Instance.new("UICorner")
+
+-- Настраиваем фрейм
+Frame.Size = UDim2.new(0, 200, 0, 400) -- Размер фрейма 200 на 400 пикселей
+Frame.Position = UDim2.new(1, -200, 0.5, -200) -- Позиция в правой части экрана (центрирован по вертикали)
+Frame.BackgroundColor3 = Color3.fromRGB(0, 191, 255) -- Цвет фона (голубой)
+Frame.Parent = ScreenGui -- Добавляем фрейм в ScreenGui
+
+-- Добавляем UICorner для скругления углов фрейма
+UICornerFrame.Parent = Frame
+UICornerFrame.CornerRadius = UDim.new(0, 12) -- Устанавливаем радиус скругления
+
+-- Настраиваем метку с названием
+TitleLabel.Size = UDim2.new(1, 0, 0, 50) -- Размер метки (ширина 100% от фрейма, высота 50 пикселей)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0) -- Позиция в верхней части фрейма
+TitleLabel.Text = "ozerco" -- Название
+TitleLabel.BackgroundColor3 = Color3.fromRGB(0, 191, 255) -- Фоновый цвет метки (голубой)
+TitleLabel.TextColor3 = Color3.fromRGB(0, 102, 204) -- Цвет текста (цвет моря)
+TitleLabel.TextScaled = true -- Масштабирование текста
+TitleLabel.Parent = Frame -- Добавляем метку в фрейм
+
+-- Настраиваем кнопку телепортации
+TeleportButton.Size = UDim2.new(0, 180, 0, 50) -- Размер кнопки
+TeleportButton.Position = UDim2.new(0, 10, 0, 60) -- Позиция кнопки внутри фрейма под заголовком
+TeleportButton.Text = "Активировать телепортацию" -- Текст на кнопке
+TeleportButton.Parent = Frame -- Добавляем кнопку в фрейм
+
+-- Добавляем UICorner для скругления углов кнопки телепортации
+UICornerTeleportButton.Parent = TeleportButton
+UICornerTeleportButton.CornerRadius = UDim.new(0, 12) -- Устанавливаем радиус скругления
+
+-- Настраиваем кнопку полета
+FlyButton.Size = UDim2.new(0, 180, 0, 50) -- Размер кнопки
+FlyButton.Position = UDim2.new(0, 10, 0, 120) -- Позиция кнопки под кнопкой телепортации
+FlyButton.Text = "Активировать полет" -- Текст на кнопке
+FlyButton.Parent = Frame -- Добавляем кнопку в фрейм
+
+-- Добавляем UICorner для скругления углов кнопки полета
+UICornerFlyButton.Parent = FlyButton
+UICornerFlyButton.CornerRadius = UDim.new(0, 12) -- Устанавливаем радиус скругления
+
+-- Переменные для телепортации
+local teleportActive = false
+
+-- Переменные для полета
+local character = Player.Character or Player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local flying = false
+local flySpeed = 50
+local bodyVelocity
+
+local function teleportToMouse()
+	local Character = Player.Character or Player.CharacterAdded:Wait()
+	if Character and Character:FindFirstChild("HumanoidRootPart") then
+		local Mouse = Player:GetMouse()
+		local targetPosition = Mouse.Hit.p
+		Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+	end
+end
+
+-- Подключаем обработчик нажатия кнопки телепортации
+TeleportButton.MouseButton1Click:Connect(function()
+	teleportActive = not teleportActive -- Переключаем состояние телепортации
+	if teleportActive then
+		TeleportButton.Text = "Телепортация активна" -- Изменяем текст кнопки
+	else
+		TeleportButton.Text = "Активировать телепортацию" -- Возвращаем текст кнопки
+	end
+end)
+
+-- Обработчик нажатия кнопки мыши для телепортации
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input)
+	if teleportActive and input.UserInputType == Enum.UserInputType.MouseButton1 then
+		teleportToMouse()
+	end
+end)
+
+-- Функция для переключения полета
+local function toggleFly()
+	flying = not flying
+
+	if flying then
+		humanoid.PlatformStand = true
+		bodyVelocity = Instance.new("BodyVelocity")
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+		bodyVelocity.Parent = character.HumanoidRootPart
+	else
+		humanoid.PlatformStand = false
+		bodyVelocity:Destroy()
+	end
+end
+
+-- Функция для полета
+local function fly()
+	while flying do
+		wait(0.1)
+		local camera = workspace.CurrentCamera
+		local direction = camera.CFrame.LookVector
+
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0) -- Сбрасываем скорость перед добавлением новой
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			bodyVelocity.Velocity = bodyVelocity.Velocity + direction * flySpeed
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			bodyVelocity.Velocity = bodyVelocity.Velocity - direction * flySpeed
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			bodyVelocity.Velocity = bodyVelocity.Velocity - camera.CFrame.RightVector * flySpeed
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			bodyVelocity.Velocity = bodyVelocity.Velocity + camera.CFrame.RightVector * flySpeed
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			bodyVelocity.Velocity = bodyVelocity.Velocity + Vector3.new(0, flySpeed, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			bodyVelocity.Velocity = bodyVelocity.Velocity - Vector3.new(0, flySpeed, 0)
+		end
+	end
+end
+
+-- Подключаем обработчик нажатия кнопки для полета
+FlyButton.MouseButton1Click:Connect(function()
+	toggleFly()
+
+	if flying then
+		FlyButton.Text = "Полёт активен" -- Изменяем текст кнопки
+		fly() -- Запускаем функцию полета в отдельном потоке
+	else
+		FlyButton.Text = "Активировать полет" -- Возвращаем текст кнопки
+	end
+end)
+
+-- Обработчик нажатия клавиши "Q" для отключения телепортации
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Q then
+		if teleportActive then
+			teleportActive = false -- Деактивируем телепортацию
+			TeleportButton.Text = "Активировать телепортацию" -- Возвращаем текст кнопки
+		end
+	end
+end)
+
+-- Перемещение фрейма
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+Frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = Frame.Position
+	end
+end)
+
+Frame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+Frame.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Добавляем ScreenGui в игрока
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
